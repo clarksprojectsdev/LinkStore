@@ -73,6 +73,9 @@ node_modules/
 dist/
 web-build/
 
+# Expo Router (not used for web)
+app.router/
+
 # Native
 *.orig.*
 *.jks

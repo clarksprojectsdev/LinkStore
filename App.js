@@ -41,6 +41,11 @@ const LoadingScreen = () => (
 
 // Web-only Store Page Component (lazy loaded with dynamic import)
 const AppContent = () => {
+  // #region agent log
+  if (typeof window !== 'undefined' && Platform.OS === 'web') {
+    fetch('http://127.0.0.1:7243/ingest/4ce12290-34aa-4238-9153-7a7624b2509d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.js:43',message:'AppContent component initialized',data:{platform:Platform.OS,userAgent:typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+  }
+  // #endregion
   const { user, loading } = useAuth();
   const [webRoute, setWebRoute] = useState(null);
   const [StorePage, setStorePage] = useState(null);
