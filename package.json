@@ -37,11 +37,14 @@
     "@babel/core": "^7.20.0",
     "@expo/cli": "^54.0.21",
     "@expo/metro-config": "^54.0.13",
+    "@expo/metro-runtime": "^6.1.2",
     "@types/react": "~19.1.10",
-    "metro": "^0.83.1",
-    "metro-config": "^0.83.3",
-    "metro-runtime": "^0.83.3",
-    "metro-transform-worker": "^0.83.3",
+    "invariant": "^2.2.4",
+    "jsc-safe-url": "^0.2.4",
+    "metro": "0.83.3",
+    "metro-config": "0.83.3",
+    "metro-runtime": "0.83.3",
+    "metro-transform-worker": "0.83.3",
     "typescript": "~5.9.2"
   },
   "private": true
