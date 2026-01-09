@@ -73,8 +73,10 @@ node_modules/
 dist/
 web-build/
 
-# Expo Router (not used for web)
+# Expo Router (not used for web - classic App.js entry only)
+app/
 app.router/
+app.expo-router/
 
 # Native
 *.orig.*

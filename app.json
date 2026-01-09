@@ -15,7 +15,9 @@
       "**/*"
     ],
     "ignore": [
-      "app.router/**"
+      "app/**",
+      "app.router/**",
+      "app.expo-router/**"
     ],
     "ios": {
       "supportsTablet": true,
