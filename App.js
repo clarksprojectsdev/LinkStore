@@ -200,16 +200,9 @@ const AppContent = () => {
 export default function App() {
   // #region agent log
   if (typeof window !== 'undefined' && Platform.OS === 'web') {
-    fetch('http://127.0.0.1:7243/ingest/4ce12290-34aa-4238-9153-7a7624b2509d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.js:186',message:'App component mounted',data:{platform:Platform.OS,hasWindow:typeof window !== 'undefined',pathname:typeof window !== 'undefined' ? window.location.pathname : 'N/A',isExpoRouter:typeof require !== 'undefined' && require.resolve && require.resolve('expo-router') ? 'yes' : 'no'},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'J'})}).catch(()=>{});
+    fetch('http://127.0.0.1:7243/ingest/4ce12290-34aa-4238-9153-7a7624b2509d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.js:200',message:'App component mounted',data:{platform:Platform.OS,hasWindow:typeof window !== 'undefined',pathname:typeof window !== 'undefined' ? window.location.pathname : 'N/A'},timestamp:Date.now(),sessionId:'debug-session',runId:'run6',hypothesisId:'M'})}).catch(()=>{});
   }
   // #endregion
-  
-  // On web, Expo Router will handle routing via app/ directory
-  // On mobile, use App.js routing
-  if (Platform.OS === 'web') {
-    // Return null - Expo Router will handle web routing
-    return null;
-  }
   
   return (
     <AuthProvider>
