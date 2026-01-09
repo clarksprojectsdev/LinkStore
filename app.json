@@ -38,8 +38,7 @@
     },
     "web": {
       "favicon": "./assets/favicon.png",
-      "bundler": "metro",
-      "output": "static"
+      "bundler": "metro"
     },
     "icon": "./assets/icon.png",
     "updates": {
@@ -51,8 +50,7 @@
       }
     },
     "plugins": [
-      "expo-secure-store",
-      "expo-router"
+      "expo-secure-store"
     ]
   }
 }
