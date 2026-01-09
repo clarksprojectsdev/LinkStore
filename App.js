@@ -41,11 +41,6 @@ const LoadingScreen = () => (
 
 // Web-only Store Page Component (lazy loaded with dynamic import)
 const AppContent = () => {
-  // #region agent log
-  if (typeof window !== 'undefined' && Platform.OS === 'web') {
-    fetch('http://127.0.0.1:7243/ingest/4ce12290-34aa-4238-9153-7a7624b2509d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.js:43',message:'AppContent component initialized',data:{platform:Platform.OS,userAgent:typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-  }
-  // #endregion
   const { user, loading } = useAuth();
   const [webRoute, setWebRoute] = useState(null);
   const [StorePage, setStorePage] = useState(null);
@@ -67,22 +62,13 @@ const AppContent = () => {
   // Handle web routing for /store/:username
   useEffect(() => {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/4ce12290-34aa-4238-9153-7a7624b2509d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.js:63',message:'Web routing effect started',data:{pathname:window.location.pathname},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
       // Check route immediately on mount (handles page refresh)
       const checkRoute = () => {
         const pathname = window.location.pathname;
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/4ce12290-34aa-4238-9153-7a7624b2509d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.js:67',message:'checkRoute called',data:{pathname},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-        // #endregion
         const storeRouteMatch = pathname.match(/^\/store\/([^\/]+)$/);
         
         if (storeRouteMatch) {
           const username = decodeURIComponent(storeRouteMatch[1]); // Handle URL encoding
-          // #region agent log
-          fetch('http://127.0.0.1:7243/ingest/4ce12290-34aa-4238-9153-7a7624b2509d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.js:71',message:'Store route matched',data:{username},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-          // #endregion
           setWebRoute({ type: 'store', username });
           
           // Lazy load StorePage component only when needed
@@ -198,12 +184,6 @@ const AppContent = () => {
 };
 
 export default function App() {
-  // #region agent log
-  if (typeof window !== 'undefined' && Platform.OS === 'web') {
-    fetch('http://127.0.0.1:7243/ingest/4ce12290-34aa-4238-9153-7a7624b2509d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.js:200',message:'App component mounted',data:{platform:Platform.OS,hasWindow:typeof window !== 'undefined',pathname:typeof window !== 'undefined' ? window.location.pathname : 'N/A'},timestamp:Date.now(),sessionId:'debug-session',runId:'run6',hypothesisId:'M'})}).catch(()=>{});
-  }
-  // #endregion
-  
   return (
     <AuthProvider>
       <StoreProvider>
