@@ -59,7 +59,7 @@ const AppContent = () => {
     isLoadingRef.current = isLoadingStorePage;
   }, [isLoadingStorePage]);
 
-  // Handle web routing for /store/:username
+  // Handle web routing for /store/:username and root path
   useEffect(() => {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       // Check route immediately on mount (handles page refresh)
@@ -84,6 +84,9 @@ const AppContent = () => {
                 setIsLoadingStorePage(false);
               });
           }
+        } else if (pathname === '/' || pathname === '') {
+          // Root path - show landing page
+          setWebRoute({ type: 'landing' });
         } else {
           setWebRoute(null);
           setStorePage(null); // Unload when not on store route
@@ -122,27 +125,43 @@ const AppContent = () => {
     }
   }, []); // Empty deps - only run on mount, checkRoute uses refs for current values
 
-  // Render web store page if on web and route matches
-  if (Platform.OS === 'web' && webRoute?.type === 'store') {
-    if (isLoadingStorePage) {
+  // Render web pages if on web
+  if (Platform.OS === 'web') {
+    // Landing page for root path
+    if (webRoute?.type === 'landing') {
       return (
         <View style={styles.webContainer}>
           <StatusBar style="auto" />
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#28a745" />
-            <Text style={styles.loadingText}>Loading store...</Text>
+          <View style={styles.landingContainer}>
+            <Text style={styles.landingTitle}>LinkStore</Text>
+            <Text style={styles.landingSubtitle}>Visit a store by going to /store/[username]</Text>
           </View>
         </View>
       );
     }
     
-    if (StorePage) {
-      return (
-        <View style={styles.webContainer}>
-          <StatusBar style="auto" />
-          <StorePage username={webRoute.username} />
-        </View>
-      );
+    // Store page
+    if (webRoute?.type === 'store') {
+      if (isLoadingStorePage) {
+        return (
+          <View style={styles.webContainer}>
+            <StatusBar style="auto" />
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#28a745" />
+              <Text style={styles.loadingText}>Loading store...</Text>
+            </View>
+          </View>
+        );
+      }
+      
+      if (StorePage) {
+        return (
+          <View style={styles.webContainer}>
+            <StatusBar style="auto" />
+            <StorePage username={webRoute.username} />
+          </View>
+        );
+      }
     }
   }
 
