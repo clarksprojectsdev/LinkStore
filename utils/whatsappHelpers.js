@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { Platform, Linking } from 'react-native';
 
 /**
  * Detects if the current device is a mobile device (iOS or Android)
@@ -124,8 +124,6 @@ export const openWhatsApp = (phoneNumber, message = '', onError = null) => {
     }
   } else {
     // React Native: use Linking API
-    const { Linking } = require('react-native');
-    
     // Try WhatsApp app first
     const appUrl = `whatsapp://send?phone=${phoneNumber.replace(/\D/g, '')}&text=${encodeURIComponent(message)}`;
     
