@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,12 +13,18 @@ import {
 } from 'react-native';
 import { useStore } from '../context/StoreContext';
 import { Ionicons } from '@expo/vector-icons';
+import VideoPreview from '../components/VideoPreview';
 
 const { width } = Dimensions.get('window');
 
 const ProductDetailsScreen = ({ navigation, route }) => {
   const { product } = route.params;
-  const { storeData } = useStore();
+  const { storeData, incrementClicks, incrementOrders } = useStore();
+
+  // Track product view when screen loads
+  useEffect(() => {
+    incrementClicks();
+  }, []);
 
   const handleWhatsAppOrder = () => {
     if (!storeData.whatsappNumber) {
@@ -33,7 +39,10 @@ const ProductDetailsScreen = ({ navigation, route }) => {
       return;
     }
 
-    const message = `Hi! I'm interested in ordering ${product.title} for $${product.price}. Can you provide more details?`;
+    // Track order when WhatsApp button is pressed
+    incrementOrders();
+
+    const message = `Hi! I'm interested in ordering ${product.title} for ₦${product.price.toLocaleString()}. Can you provide more details?`;
     const whatsappUrl = `whatsapp://send?phone=${storeData.whatsappNumber}&text=${encodeURIComponent(message)}`;
     
     Linking.canOpenURL(whatsappUrl)
@@ -61,35 +70,31 @@ const ProductDetailsScreen = ({ navigation, route }) => {
           <Ionicons name="arrow-back" size={24} color="#007AFF" />
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Product Details</Text>
         <View style={styles.headerSpacer} />
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Product Image */}
+        {/* Product Image/Video */}
         <View style={styles.imageContainer}>
-          {product.image ? (
-            <Image
-              source={{ uri: product.image }}
-              style={styles.productImage}
-              resizeMode="cover"
-              onError={() => {
-                // Handle image loading error
-                console.log('Failed to load product image');
-              }}
-            />
-          ) : (
-            <View style={[styles.productImage, styles.productImagePlaceholder]}>
-              <Ionicons name="image-outline" size={64} color="#ccc" />
-              <Text style={styles.imagePlaceholderText}>No Image Available</Text>
-            </View>
-          )}
+          <VideoPreview
+            videoUri={product.previewVideo}
+            imageUri={product.image}
+            style={styles.productImage}
+            autoPlay={true}
+            loop={true}
+            muted={true}
+            showControls={true}
+            resizeMode="cover"
+            onError={(error) => {
+              console.warn('Video preview error for product:', product.id, error);
+            }}
+          />
         </View>
 
         {/* Product Info */}
         <View style={styles.productInfo}>
           <Text style={styles.productTitle}>{product.title}</Text>
-          <Text style={styles.productPrice}>${product.price}</Text>
+          <Text style={styles.productPrice}>₦{product.price.toLocaleString()}</Text>
           
           {product.description && (
             <View style={styles.descriptionContainer}>
@@ -168,11 +173,6 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     fontWeight: '500',
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000',
-  },
   headerSpacer: {
     width: 80,
   },
@@ -187,19 +187,6 @@ const styles = StyleSheet.create({
   productImage: {
     width: '100%',
     height: '100%',
-  },
-  productImagePlaceholder: {
-    backgroundColor: '#f8f9fa',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#e9ecef',
-    borderStyle: 'dashed',
-  },
-  imagePlaceholderText: {
-    color: '#999',
-    fontSize: 16,
-    marginTop: 8,
   },
   productInfo: {
     padding: 20,

@@ -9,6 +9,7 @@ import {
 import { auth } from '../config/firebase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
+import { createInitialStore } from '../utils/firestoreHelpers';
 
 const AuthContext = createContext();
 
@@ -94,40 +95,48 @@ export const AuthProvider = ({ children }) => {
            }
          };
 
-           const signUp = async (email, password, displayName = 'Vendor') => {
-           try {
-             setLoading(true);
-             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-             
-             // Update profile with display name
-             await updateProfile(userCredential.user, {
-               displayName: displayName
-             });
+  const signUp = async (email, password, displayName = 'Vendor') => {
+    try {
+      setLoading(true);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      
+      // Update profile with display name
+      await updateProfile(userCredential.user, {
+        displayName: displayName
+      });
 
-             const userData = {
-               uid: userCredential.user.uid,
-               email: userCredential.user.email,
-               displayName: displayName,
-             };
+      const userData = {
+        uid: userCredential.user.uid,
+        email: userCredential.user.email,
+        displayName: displayName,
+      };
 
-             setUser(userData);
-             setIsAuthenticated(true);
-             // Store user data in secure storage
-             await SecureStore.setItemAsync('user', JSON.stringify(userData));
-             // Also store in AsyncStorage as backup
-             await AsyncStorage.setItem('user', JSON.stringify(userData));
-             
-             return { success: true, user: userData };
-           } catch (error) {
-             // Don't log the raw error to console - let the UI handle it
-             return { 
-               success: false, 
-               error: error.code || error.message 
-             };
-           } finally {
-             setLoading(false);
-           }
-         };
+      // Create initial store document in Firestore
+      try {
+        await createInitialStore(userCredential.user.uid);
+      } catch (storeError) {
+        console.error('Error creating initial store:', storeError);
+        // Don't fail signup if store creation fails - it can be created later
+      }
+
+      setUser(userData);
+      setIsAuthenticated(true);
+      // Store user data in secure storage
+      await SecureStore.setItemAsync('user', JSON.stringify(userData));
+      // Also store in AsyncStorage as backup
+      await AsyncStorage.setItem('user', JSON.stringify(userData));
+      
+      return { success: true, user: userData };
+    } catch (error) {
+      // Don't log the raw error to console - let the UI handle it
+      return { 
+        success: false, 
+        error: error.code || error.message 
+      };
+    } finally {
+      setLoading(false);
+    }
+  };
 
            const signIn = async (email, password) => {
            try {
@@ -169,12 +178,11 @@ export const AuthProvider = ({ children }) => {
       await SecureStore.deleteItemAsync('user');
       await AsyncStorage.removeItem('user');
     } catch (error) {
-      console.error('Logout error:', error);
       // Fallback to AsyncStorage only
       try {
         await AsyncStorage.removeItem('user');
       } catch (fallbackError) {
-        console.error('Fallback logout clear also failed:', fallbackError);
+        // Silent fallback
       }
     } finally {
       setLoading(false);

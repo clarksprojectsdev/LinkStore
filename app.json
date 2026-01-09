@@ -3,60 +3,54 @@
     "name": "LinkStore",
     "slug": "linkstore",
     "version": "1.0.0",
+    "scheme": "linkstore",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "updates": {
-      "enabled": true
-    },
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.olaitanclark9.linkstore",
+      "bundleIdentifier": "com.olaitan.linkstore",
       "buildNumber": "1",
+      "icon": "./assets/icon.png",
       "infoPlist": {
-        "NSCameraUsageDescription": "This app needs camera access to take product photos.",
-        "NSPhotoLibraryUsageDescription": "This app needs photo library access to select product images."
+        "NSCameraUsageDescription": "This app uses the camera to take product photos for your store.",
+        "NSPhotoLibraryUsageDescription": "This app accesses your photo library to select product images for your store.",
+        "NSPhotoLibraryAddUsageDescription": "This app saves product images to your photo library."
       }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#28a745"
       },
-      "package": "com.olaitanclark9.linkstore",
-      "versionCode": 1,
+      "package": "com.olaitan.linkstore",
+      "versionCode": 7,
       "permissions": [
-        "android.permission.CAMERA",
-        "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.RECORD_AUDIO"
+        "CAMERA"
       ]
     },
-    "description": "A professional store management app for vendors",
-    "primaryColor": "#28a745",
-    "owner": "olaitanclark9",
-    "plugins": [
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "This app accesses your photos to let you share them with your customers.",
-          "cameraPermission": "This app needs camera access to take product photos."
-        }
-      ],
-      "expo-secure-store"
-    ],
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "icon": "./assets/icon.png",
+    "updates": {
+      "enabled": true
+    },
     "extra": {
       "eas": {
         "projectId": "9276290f-efa2-48c9-add7-09e88202a262"
       }
-    }
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-router"
+    ]
   }
 }

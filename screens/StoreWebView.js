@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,12 +10,115 @@ import {
   Linking,
   Alert,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useStore } from '../context/StoreContext';
+import ReportSeller from '../components/ReportSeller';
+import VideoPreview from '../components/VideoPreview';
+import RateVendorModal from '../components/RateVendorModal';
+import SafetyTipsModal from '../components/SafetyTipsModal';
 
 const StoreWebView = ({ route }) => {
-  const { storeData, products } = useStore();
+  const { storeData, products, updateStoreRating } = useStore();
   const { storeId } = route.params || {};
+  
+  // Rating modal state
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [isRatingLoading, setIsRatingLoading] = useState(false);
+  
+  // Safety tips modal state
+  const [showSafetyModal, setShowSafetyModal] = useState(false);
+
+
+  // Clear vendor flag when customer accesses store web view
+  useEffect(() => {
+    const clearVendorFlag = async () => {
+      try {
+        await AsyncStorage.setItem('isVendor', 'false');
+      } catch (error) {
+        console.warn('Could not clear vendor flag:', error);
+      }
+    };
+    clearVendorFlag();
+  }, []);
+
+  // Check if user returned from WhatsApp (simple detection)
+  useEffect(() => {
+    const checkForReturnFromWhatsApp = async () => {
+      try {
+        // This is a simple implementation - in a real app you might use deep linking
+        // or more sophisticated tracking to detect WhatsApp return
+        const lastWhatsAppTime = await AsyncStorage.getItem('lastWhatsAppOrder');
+        if (lastWhatsAppTime) {
+          const timeDiff = Date.now() - parseInt(lastWhatsAppTime);
+          // Show rating modal if user returned within 5 minutes
+          if (timeDiff < 5 * 60 * 1000) {
+            // Check if user is not the vendor (simple check)
+            const isVendor = await AsyncStorage.getItem('isVendor');
+            if (isVendor !== 'true') {
+              setShowRatingModal(true);
+            }
+            await AsyncStorage.removeItem('lastWhatsAppOrder');
+          }
+        }
+      } catch (error) {
+        console.warn('Error checking WhatsApp return:', error);
+      }
+    };
+
+    checkForReturnFromWhatsApp();
+  }, []);
+
+  const handleRatingSubmit = async (rating) => {
+    try {
+      setIsRatingLoading(true);
+      await updateStoreRating(rating);
+      setShowRatingModal(false);
+      Alert.alert('Thank You!', 'Your rating has been submitted successfully.');
+    } catch (error) {
+      console.error('Error submitting rating:', error);
+      Alert.alert('Error', 'Failed to submit rating. Please try again.');
+    } finally {
+      setIsRatingLoading(false);
+    }
+  };
+
+  const handleRatingClose = () => {
+    setShowRatingModal(false);
+  };
+
+  const handleSafetyTipsPress = () => {
+    setShowSafetyModal(true);
+  };
+
+  const handleSafetyClose = () => {
+    setShowSafetyModal(false);
+  };
+
+  const renderStars = (rating) => {
+    const stars = [];
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 !== 0;
+    
+    for (let i = 1; i <= 5; i++) {
+      if (i <= fullStars) {
+        stars.push(
+          <Ionicons key={i} name="star" size={16} color="#FFD700" />
+        );
+      } else if (i === fullStars + 1 && hasHalfStar) {
+        stars.push(
+          <Ionicons key={i} name="star-half" size={16} color="#FFD700" />
+        );
+      } else {
+        stars.push(
+          <Ionicons key={i} name="star-outline" size={16} color="#FFD700" />
+        );
+      }
+    }
+    
+    return stars;
+  };
+
 
   const handleWhatsAppOrder = (product) => {
     if (!storeData.whatsappNumber) {
@@ -23,7 +126,17 @@ const StoreWebView = ({ route }) => {
       return;
     }
 
-    const message = `Hi! I'm interested in ordering ${product.title} for $${product.price}. Can you provide more details?`;
+    // Track WhatsApp order for rating prompt
+    const trackWhatsAppOrder = async () => {
+      try {
+        await AsyncStorage.setItem('lastWhatsAppOrder', Date.now().toString());
+      } catch (error) {
+        console.warn('Could not track WhatsApp order:', error);
+      }
+    };
+    trackWhatsAppOrder();
+
+    const message = `Hi! I'm interested in ordering ${product.title} for ₦${product.price.toLocaleString()}. Can you provide more details?`;
     const whatsappUrl = `whatsapp://send?phone=${storeData.whatsappNumber}&text=${encodeURIComponent(message)}`;
     
     Linking.canOpenURL(whatsappUrl)
@@ -41,17 +154,19 @@ const StoreWebView = ({ route }) => {
 
   const renderProductCard = (product) => (
     <View key={product.id} style={styles.productCard}>
-      {product.image ? (
-        <Image
-          source={{ uri: product.image }}
-          style={styles.productImage}
-          resizeMode="cover"
-        />
-      ) : (
-        <View style={[styles.productImage, styles.productImagePlaceholder]}>
-          <Ionicons name="image-outline" size={32} color="#ccc" />
-        </View>
-      )}
+      <VideoPreview
+        videoUri={product.previewVideo}
+        imageUri={product.image}
+        style={styles.productImage}
+        autoPlay={true}
+        loop={true}
+        muted={true}
+        showControls={false}
+        resizeMode="cover"
+        onError={(error) => {
+          console.warn('Video preview error for product:', product.id, error);
+        }}
+      />
       
       <View style={styles.productInfo}>
         <Text style={styles.productTitle}>{product.title}</Text>
@@ -60,7 +175,7 @@ const StoreWebView = ({ route }) => {
         </Text>
         
         <View style={styles.productMeta}>
-          <Text style={styles.productPrice}>${product.price}</Text>
+          <Text style={styles.productPrice}>₦{product.price.toLocaleString()}</Text>
           {product.rating > 0 && (
             <View style={styles.ratingContainer}>
               <Ionicons name="star" size={14} color="#FFD700" />
@@ -73,7 +188,7 @@ const StoreWebView = ({ route }) => {
           style={styles.whatsappButton}
           onPress={() => handleWhatsAppOrder(product)}
         >
-          <Ionicons name="logo-whatsapp" size={16} color="white" />
+          <Ionicons name="logo-whatsapp" size={14} color="white" />
           <Text style={styles.whatsappButtonText}>Order on WhatsApp</Text>
         </TouchableOpacity>
       </View>
@@ -93,9 +208,26 @@ const StoreWebView = ({ route }) => {
             <Text style={styles.productCount}>
               {products.length} product{products.length !== 1 ? 's' : ''} available
             </Text>
+            <View style={styles.headerRatingContainer}>
+              {storeData.storeRating > 0 ? (
+                renderStars(storeData.storeRating)
+              ) : (
+                <Text style={styles.noRatingText}>No ratings yet</Text>
+              )}
+            </View>
           </View>
         </View>
+        
+        {/* Safety Tips Icon */}
+        <TouchableOpacity
+          style={styles.safetyButton}
+          onPress={handleSafetyTipsPress}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="shield-checkmark" size={24} color="white" />
+        </TouchableOpacity>
       </View>
+
 
       {/* Store Banner */}
       {storeData.bannerImage && (
@@ -123,12 +255,39 @@ const StoreWebView = ({ route }) => {
         )}
       </ScrollView>
 
+
+      {/* Floating Report Button */}
+      <View style={styles.floatingReportContainer}>
+        <ReportSeller 
+          storeId={storeId || storeData.username || storeData.storeName?.toLowerCase().replace(/\s+/g, '-') || 'my-store'}
+          onReportSubmit={() => {
+            Alert.alert('Report Submitted', 'Thank you for your report. We will investigate this matter.');
+          }}
+        />
+      </View>
+
       {/* Footer */}
       <View style={styles.footer}>
         <Text style={styles.footerText}>
           Powered by LinkStore
         </Text>
       </View>
+
+      {/* Rating Modal */}
+      <RateVendorModal
+        visible={showRatingModal}
+        onClose={handleRatingClose}
+        onRate={handleRatingSubmit}
+        storeName={storeData.storeName || 'this vendor'}
+        isLoading={isRatingLoading}
+      />
+
+      {/* Safety Tips Modal */}
+      <SafetyTipsModal
+        visible={showSafetyModal}
+        onClose={handleSafetyClose}
+      />
+
     </SafeAreaView>
   );
 }
@@ -140,12 +299,16 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#28a745',
-    padding: 20,
-    paddingTop: 30,
+    padding: 15,
+    paddingTop: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   storeInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   storeIcon: {
     width: 50,
@@ -182,8 +345,8 @@ const styles = StyleSheet.create({
   },
   productCard: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 20,
+    borderRadius: 10,
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -196,7 +359,7 @@ const styles = StyleSheet.create({
   },
   productImage: {
     width: '100%',
-    height: 200,
+    height: 160,
   },
   productImagePlaceholder: {
     backgroundColor: '#f8f9fa',
@@ -207,28 +370,28 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
   },
   productInfo: {
-    padding: 15,
+    padding: 12,
   },
   productTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   productDescription: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#666',
-    marginBottom: 12,
-    lineHeight: 20,
+    marginBottom: 10,
+    lineHeight: 18,
   },
   productMeta: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 15,
+    marginBottom: 12,
   },
   productPrice: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#28a745',
   },
@@ -247,15 +410,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#25d366',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 25,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 20,
   },
   whatsappButtonText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
-    marginLeft: 8,
+    marginLeft: 6,
   },
   emptyState: {
     alignItems: 'center',
@@ -283,6 +446,28 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 14,
     color: '#999',
+  },
+  floatingReportContainer: {
+    position: 'absolute',
+    bottom: 100,
+    right: 20,
+    zIndex: 1000,
+  },
+  headerRatingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  noRatingText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontStyle: 'italic',
+  },
+  safetyButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    marginLeft: 10,
   },
 });
 

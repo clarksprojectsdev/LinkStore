@@ -18,9 +18,10 @@ A minimal, mobile-first mini-store application that allows vendors to create and
 
 ## Tech Stack
 
-- React Native 0.76.3
-- Expo SDK 53
+- React Native 0.81.5
+- Expo SDK 54
 - React Navigation 6
+- Firebase Authentication
 - AsyncStorage for local data persistence
 - Expo ImagePicker for image selection
 - Expo Linking for WhatsApp integration

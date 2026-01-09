@@ -22,6 +22,14 @@ const WelcomeScreen = ({ navigation }) => {
     navigation.navigate('Store');
   };
 
+  const handleViewDashboard = () => {
+    navigation.navigate('SellerDashboard');
+  };
+
+  const handleFirestoreTest = () => {
+    navigation.navigate('FirestoreTest');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -49,16 +57,33 @@ const WelcomeScreen = ({ navigation }) => {
           style={styles.createStoreButton}
           onPress={handleCreateStore}
         >
-          <Text style={styles.createStoreButtonText}>Create Your Store</Text>
+          <Text style={styles.createStoreButtonText} numberOfLines={1} ellipsizeMode="tail">Create Your Store</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.viewStoreButton}
           onPress={handleViewStore}
         >
-          <Text style={styles.viewStoreButtonText}>
-            View My Store ({products.length} products)
+          <Text style={styles.viewStoreButtonText} numberOfLines={1} ellipsizeMode="tail">
+            My Store
           </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.dashboardButton}
+          onPress={handleViewDashboard}
+        >
+          <Ionicons name="analytics-outline" size={20} color="#28a745" />
+          <Text style={styles.dashboardButtonText} numberOfLines={1} ellipsizeMode="tail">Dashboard</Text>
+        </TouchableOpacity>
+
+        {/* Firestore Test Button - Developer Tool */}
+        <TouchableOpacity
+          style={styles.testButton}
+          onPress={handleFirestoreTest}
+        >
+          <Ionicons name="bug-outline" size={20} color="#007AFF" />
+          <Text style={styles.testButtonText} numberOfLines={1} ellipsizeMode="tail">Firestore Test</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -115,9 +140,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#28a745',
     paddingVertical: 16,
     paddingHorizontal: 32,
-    borderRadius: 25,
-    marginBottom: 20,
-    minWidth: 200,
+    borderRadius: 12,
+    marginBottom: 16,
+    minWidth: 300,
     alignItems: 'center',
   },
   createStoreButtonText: {
@@ -131,14 +156,59 @@ const styles = StyleSheet.create({
     borderColor: '#28a745',
     paddingVertical: 16,
     paddingHorizontal: 32,
-    borderRadius: 25,
-    minWidth: 200,
+    borderRadius: 12,
+    marginBottom: 16,
+    minWidth: 300,
     alignItems: 'center',
   },
   viewStoreButtonText: {
     color: '#28a745',
     fontSize: 18,
     fontWeight: '600',
+  },
+  dashboardButton: {
+    backgroundColor: '#ffffff',
+    borderWidth: 2,
+    borderColor: '#28a745',
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    marginTop: 0,
+    minWidth: 300,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignContent: 'center',
+  },
+  dashboardButtonText: {
+    color: '#28a745',
+    fontSize: 18,
+    fontWeight: '600',
+    marginLeft: 8,
+    textAlign: 'center',
+    flex: 1,
+  },
+  testButton: {
+    backgroundColor: '#ffffff',
+    borderWidth: 2,
+    borderColor: '#007AFF',
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    marginTop: 16,
+    minWidth: 300,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignContent: 'center',
+  },
+  testButtonText: {
+    color: '#007AFF',
+    fontSize: 18,
+    fontWeight: '600',
+    marginLeft: 8,
+    textAlign: 'center',
+    flex: 1,
   },
 });
 

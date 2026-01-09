@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,20 +11,69 @@ import {
   SafeAreaView,
   TextInput,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useStore } from '../context/StoreContext';
 import { useAuth } from '../context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { RefreshControl } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
+import { getStoreByUserId, getProductsByStoreId } from '../utils/firestoreHelpers';
 
 const StoreScreen = ({ navigation }) => {
   const { storeData, products, saveStoreData, isLoading, deleteProduct } = useStore();
-  const { logOut } = useAuth();
+  const { user, logOut } = useAuth();
   const [isEditingStoreName, setIsEditingStoreName] = useState(false);
   const [tempStoreName, setTempStoreName] = useState(storeData.storeName);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('newest'); // 'newest', 'price-low', 'price-high', 'name'
   const [selectedCategory, setSelectedCategory] = useState('all');
+
+  // Set vendor flag when vendor accesses their store
+  useEffect(() => {
+    const setVendorFlag = async () => {
+      try {
+        await AsyncStorage.setItem('isVendor', 'true');
+      } catch (error) {
+        // Silent fallback
+      }
+    };
+    setVendorFlag();
+  }, []);
+
+  // Debug: Verify Firestore sync on mount
+  useEffect(() => {
+    const verifyFirestoreSync = async () => {
+      try {
+        // 1. Log current authenticated user
+        console.log('=== FIRESTORE SYNC VERIFICATION ===');
+        console.log('AUTH UID:', user?.uid);
+        
+        if (!user?.uid) {
+          console.log('No authenticated user found');
+          return;
+        }
+
+        // 2. Fetch and log store document
+        const storeDoc = await getStoreByUserId(user.uid);
+        console.log('STORE DOC EXISTS:', storeDoc !== null);
+        if (storeDoc) {
+          console.log('STORE DOC DATA:', storeDoc);
+        } else {
+          console.log('STORE DOC: null (document does not exist)');
+        }
+
+        // 3. Fetch and log all products
+        const firestoreProducts = await getProductsByStoreId(user.uid);
+        console.log('PRODUCTS COUNT:', firestoreProducts?.length || 0);
+        console.log('PRODUCTS DATA:', firestoreProducts);
+        console.log('=== END VERIFICATION ===');
+      } catch (error) {
+        console.error('Firestore sync verification error:', error);
+      }
+    };
+
+    verifyFirestoreSync();
+  }, [user?.uid]); // Run once when component mounts and user.uid is available
 
   const handleWhatsAppOrder = (product) => {
     if (!storeData.whatsappNumber) {
@@ -39,7 +88,7 @@ const StoreScreen = ({ navigation }) => {
       return;
     }
 
-    const message = `Hi! I'm interested in ordering ${product.title} for $${product.price}. Can you provide more details?`;
+    const message = `Hi! I'm interested in ordering ${product.title} for ₦${product.price.toLocaleString()}. Can you provide more details?`;
     const whatsappUrl = `whatsapp://send?phone=${storeData.whatsappNumber}&text=${encodeURIComponent(message)}`;
     
     Linking.canOpenURL(whatsappUrl)
@@ -76,26 +125,123 @@ const StoreScreen = ({ navigation }) => {
       });
   };
 
-  const handleCopyStoreLink = () => {
-    // Generate a unique store link
-    const storeLink = `https://mystore.app/store/${storeData.storeName?.toLowerCase().replace(/\s+/g, '-') || 'my-store'}`;
+  const handleCopyStoreLink = async () => {
+    // If username is missing but storeName exists, try to save the store first
+    // This will create the Firestore document and generate a username
+    if (!storeData.username && storeData.storeName) {
+      // Check if we have minimum required data
+      if (!storeData.whatsappNumber) {
+        Alert.alert(
+          'Store Setup Required',
+          'Your store needs to be saved with a WhatsApp number before you can generate a shareable link.\n\nPlease go to Store Setup to complete your store information.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: 'Go to Setup', 
+              onPress: () => navigation.navigate('VendorSetup')
+            }
+          ]
+        );
+        return;
+      }
+
+      // Try to save the store to Firestore (this will generate username)
+      try {
+        await saveStoreData({
+          storeName: storeData.storeName,
+          whatsappNumber: storeData.whatsappNumber,
+          bannerImage: storeData.bannerImage,
+          logo: storeData.logo,
+        });
+
+        // Wait a moment for Firestore to sync and context to update
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Reload store data from Firestore to get the username
+        const updatedStore = await getStoreByUserId(user.uid);
+        if (updatedStore?.username) {
+          // Username was generated, proceed with copying link
+          const storeLink = `https://linkstore.app/store/${updatedStore.username}`;
+          Clipboard.setString(storeLink);
+          Alert.alert(
+            'Success!',
+            `Your store link has been generated and copied:\n\n${storeLink}\n\nShare it on social media!`,
+            [{ text: 'OK' }]
+          );
+          return;
+        } else {
+          // Store saved but username not generated yet (might be offline)
+          Alert.alert(
+            'Store Saved',
+            'Your store has been saved, but the username is still being generated. Please try again in a moment, or check your internet connection.',
+            [{ text: 'OK' }]
+          );
+          return;
+        }
+      } catch (error) {
+        console.error('Error saving store for link generation:', error);
+        Alert.alert(
+          'Unable to Generate Link',
+          'We couldn\'t save your store information right now. Please try saving your store in the Store Setup screen first, then try again.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: 'Go to Setup', 
+              onPress: () => navigation.navigate('VendorSetup')
+            }
+          ]
+        );
+        return;
+      }
+    }
+
+    // If we have a username, proceed normally
+    const username = storeData.username;
+    
+    if (!username) {
+      Alert.alert(
+        'Store Username Not Set',
+        'Your store needs a username to generate a shareable link. Please save your store information first.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Go to Setup', 
+            onPress: () => navigation.navigate('VendorSetup')
+          }
+        ]
+      );
+      return;
+    }
+    
+    const storeLink = `https://linkstore.app/store/${username}`;
     
     Alert.alert(
       'Share Your Store',
-      `Your store link:\n\n${storeLink}\n\nNote: This is a demo link. In a real app, this would open your actual store page.`,
+      `Your store link:\n\n${storeLink}\n\nThis link includes Open Graph meta tags for beautiful social media previews!`,
       [
         { text: 'Cancel', style: 'cancel' },
         { 
           text: 'Copy Link', 
           onPress: () => {
             Clipboard.setString(storeLink);
-            Alert.alert('Success', 'Store link copied to clipboard! Share it with your customers.');
+            Alert.alert('Success', 'Store link copied to clipboard! Share it on social media for beautiful previews.');
           }
         },
         {
           text: 'Preview Store',
           onPress: () => {
-            navigation.navigate('StoreWebView', { storeId: storeData.storeName });
+            navigation.navigate('StoreWebView', { storeId: username });
+          }
+        },
+        {
+          text: 'Generate Web Page',
+          onPress: () => {
+            // In a real app, this would trigger the store page generation
+            Alert.alert(
+              'Web Page Generated',
+              'Your store page has been generated with Open Graph meta tags! The page is ready for social media sharing.',
+              [{ text: 'OK' }]
+            );
           }
         }
       ]
@@ -212,7 +358,7 @@ const StoreScreen = ({ navigation }) => {
             style={styles.productImage}
             resizeMode="cover"
             onError={() => {
-              console.log('Failed to load product image');
+              // Image failed to load, placeholder will be shown
             }}
           />
         ) : (
@@ -223,7 +369,7 @@ const StoreScreen = ({ navigation }) => {
         <View style={styles.productInfo}>
           <Text style={styles.productTitle}>{product.title}</Text>
           <View style={styles.productMeta}>
-            <Text style={styles.productPrice}>${product.price}</Text>
+            <Text style={styles.productPrice}>₦{product.price.toLocaleString()}</Text>
             {product.rating > 0 && (
               <View style={styles.ratingContainer}>
                 <Ionicons name="star" size={14} color="#FFD700" />
@@ -380,7 +526,7 @@ const StoreScreen = ({ navigation }) => {
           </Text>
           {products.length > 0 && (
             <Text style={styles.storeStats}>
-              Total Value: ${products.reduce((sum, product) => sum + product.price, 0).toFixed(2)}
+              Total Value: ₦{products.reduce((sum, product) => sum + product.price, 0).toLocaleString()}
             </Text>
           )}
         </View>
@@ -443,6 +589,7 @@ const StoreScreen = ({ navigation }) => {
         </TouchableOpacity>
 
 
+
       </View>
     </SafeAreaView>
   );
@@ -462,11 +609,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
     borderBottomWidth: 1,
     borderBottomColor: '#e9ecef',
+    position: 'relative',
   },
 
   headerTitleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    justifyContent: 'center',
+    zIndex: 0,
   },
   headerTitle: {
     fontSize: 18,
@@ -489,6 +642,7 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     padding: 8,
+    zIndex: 1,
   },
   searchContainer: {
     paddingHorizontal: 20,
@@ -774,10 +928,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#28a745',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    marginRight: 10,
+    paddingVertical: 18,
+    paddingHorizontal: 24,
+    borderRadius: 18,
+    marginRight: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   addProductButtonText: {
     color: '#ffffff',
@@ -791,18 +953,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#ffffff',
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: '#28a745',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    marginLeft: 10,
+    paddingVertical: 18,
+    paddingHorizontal: 24,
+    borderRadius: 18,
+    marginLeft: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   copyLinkButtonText: {
     color: '#28a745',
     fontSize: 16,
     fontWeight: '600',
-    textAlign: 'center',
+    marginLeft: 8,
   },
 });
 

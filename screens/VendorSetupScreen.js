@@ -19,7 +19,6 @@ import { Ionicons } from '@expo/vector-icons';
 
 const VendorSetupScreen = ({ navigation, route }) => {
   const { storeData, saveStoreData, addProduct, updateProduct } = useStore();
-  const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [activeTab, setActiveTab] = useState('product'); // 'product' or 'store'
   const [isSavingStore, setIsSavingStore] = useState(false);
   const [isSavingProduct, setIsSavingProduct] = useState(false);
@@ -35,63 +34,57 @@ const VendorSetupScreen = ({ navigation, route }) => {
   const [productDescription, setProductDescription] = useState('');
   const [productCategory, setProductCategory] = useState('General');
   const [productImage, setProductImage] = useState(null);
+  const [productVideo, setProductVideo] = useState(null);
 
   useEffect(() => {
     if (route.params?.product) {
       const product = route.params.product;
-      setIsAddingProduct(true);
       setProductTitle(product.title);
       setProductPrice(product.price.toString());
       setProductDescription(product.description || '');
       setProductImage(product.image);
+      setProductVideo(product.previewVideo || null);
     }
   }, [route.params]);
 
   const pickImage = async (type) => {
     try {
-      // Request permissions first
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Please grant photo library access to select images.');
-        return;
-      }
-
+      // Use system picker (Android Photo Picker on Android 13+)
+      // No permission request needed - system picker handles permissions automatically
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: type === 'video' ? ImagePicker.MediaTypeOptions.Videos : ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
-        aspect: type === 'banner' ? [16, 9] : [1, 1],
-        quality: 0.8,
+        aspect: type === 'banner' ? [16, 9] : type === 'video' ? [16, 9] : [1, 1],
+        quality: 1,
+        videoMaxDuration: type === 'video' ? 30 : undefined, // 30 second limit for videos
       });
 
       if (!result.canceled && result.assets[0]) {
         const imageUri = result.assets[0].uri;
         
-        // Basic image validation
+        // Basic file validation using only the URI (no file system access)
         if (imageUri) {
-          // Check file extension
+          // Check file extension from URI
           const fileExtension = imageUri.split('.').pop()?.toLowerCase();
-          const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+          const isVideo = type === 'video';
+          const allowedImageExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+          const allowedVideoExtensions = ['mp4', 'mov', 'avi', 'mkv'];
+          const allowedExtensions = isVideo ? allowedVideoExtensions : allowedImageExtensions;
           
           if (!allowedExtensions.includes(fileExtension)) {
-            Alert.alert('Invalid Image', 'Please select a valid image file (JPG, PNG, or WebP)');
+            const fileType = isVideo ? 'video' : 'image';
+            const extensions = isVideo ? 'MP4, MOV, AVI, or MKV' : 'JPG, PNG, or WebP';
+            Alert.alert(`Invalid ${fileType.charAt(0).toUpperCase() + fileType.slice(1)}`, `Please select a valid ${fileType} file (${extensions})`);
             return;
           }
           
-          // Check file size (if available)
-          try {
-            const fileInfo = await FileSystem.getInfoAsync(imageUri);
-            const maxSize = 10 * 1024 * 1024; // 10MB limit
-            
-            if (fileInfo.exists && fileInfo.size && fileInfo.size > maxSize) {
-              Alert.alert('File Too Large', 'Please select an image smaller than 10MB');
-              return;
-            }
-          } catch (error) {
-            console.log('Could not check file size:', error);
-          }
+          // Note: File size validation removed to comply with Google Play policy
+          // The system picker and allowsEditing will handle reasonable file sizes
           
           if (type === 'banner') {
             setBannerImage(imageUri);
+          } else if (type === 'video') {
+            setProductVideo(imageUri);
           } else {
             setProductImage(imageUri);
           }
@@ -137,7 +130,20 @@ const VendorSetupScreen = ({ navigation, route }) => {
       Alert.alert('Success', 'Store information saved successfully!');
       navigation.goBack();
     } catch (error) {
-      Alert.alert('Error', 'Failed to save store information');
+      // Check if it's an offline error
+      const isOfflineError = error?.code === 'unavailable' || 
+                             error?.message?.includes('offline') ||
+                             error?.message?.includes('Failed to get document');
+      
+      if (isOfflineError) {
+        Alert.alert(
+          'Saved Locally', 
+          'Store information saved locally. It will sync to Firestore when you\'re back online.'
+        );
+        navigation.goBack();
+      } else {
+        Alert.alert('Error', 'Failed to save store information. Please try again.');
+      }
     } finally {
       setIsSavingStore(false);
     }
@@ -183,29 +189,87 @@ const VendorSetupScreen = ({ navigation, route }) => {
         description: productDescription.trim(),
         category: productCategory.trim(),
         image: productImage,
+        previewVideo: productVideo, // Optional video preview
       };
 
       if (route.params?.product) {
         // Update existing product
         await updateProduct(route.params.product.id, newProduct);
-        Alert.alert('Success', 'Product updated successfully!');
+        Alert.alert(
+          'Success', 
+          'Product updated successfully!',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                // Reset form
+                setProductTitle('');
+                setProductPrice('');
+                setProductDescription('');
+                setProductCategory('General');
+                setProductImage(null);
+                setProductVideo(null);
+                // Navigate to store screen
+                navigation.navigate('Store');
+              }
+            }
+          ]
+        );
       } else {
         // Add new product
         await addProduct(newProduct);
-        Alert.alert('Success', 'Product added successfully!');
+        Alert.alert(
+          'Success', 
+          'Product added successfully!',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                // Reset form
+                setProductTitle('');
+                setProductPrice('');
+                setProductDescription('');
+                setProductCategory('General');
+                setProductImage(null);
+                setProductVideo(null);
+                // Navigate to store screen
+                navigation.navigate('Store');
+              }
+            }
+          ]
+        );
       }
-      
-      // Reset form
-      setProductTitle('');
-      setProductPrice('');
-      setProductDescription('');
-      setProductCategory('General');
-      setProductImage(null);
-      
-      // Go back to store screen
-      navigation.navigate('Store');
     } catch (error) {
-      Alert.alert('Error', 'Failed to save product');
+      console.error('Error in handleAddProduct:', error);
+      // Check if it's an offline error
+      const isOfflineError = error?.code === 'unavailable' || 
+                             error?.message?.includes('offline') ||
+                             error?.message?.includes('Failed to get document');
+      
+      if (isOfflineError) {
+        Alert.alert(
+          'Saved Locally', 
+          'Product saved locally. It will sync to Firestore when you\'re back online.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                // Reset form
+                setProductTitle('');
+                setProductPrice('');
+                setProductDescription('');
+                setProductCategory('General');
+                setProductImage(null);
+                setProductVideo(null);
+                // Navigate to store screen
+                navigation.navigate('Store');
+              }
+            }
+          ]
+        );
+      } else {
+        Alert.alert('Error', 'Failed to save product. Please try again.');
+      }
     } finally {
       setIsSavingProduct(false);
     }
@@ -217,8 +281,6 @@ const VendorSetupScreen = ({ navigation, route }) => {
 
   const renderStoreSetup = () => (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Store Setup</Text>
-      
       {/* Store Name */}
       <Text style={styles.label}>Store Name *</Text>
       <TextInput
@@ -272,8 +334,6 @@ const VendorSetupScreen = ({ navigation, route }) => {
 
   const renderAddProduct = () => (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Add Product</Text>
-      
       {/* Product Image */}
       <Text style={styles.label}>Product Image *</Text>
       <TouchableOpacity
@@ -286,6 +346,28 @@ const VendorSetupScreen = ({ navigation, route }) => {
           <>
             <Ionicons name="camera" size={32} color="#999" />
             <Text style={styles.imagePickerText}>Tap to add product image</Text>
+          </>
+        )}
+      </TouchableOpacity>
+
+      {/* Product Video Preview (Optional) */}
+      <Text style={styles.label}>Product Video Preview (Optional)</Text>
+      <TouchableOpacity
+        style={styles.imagePicker}
+        onPress={() => pickImage('video')}
+      >
+        {productVideo ? (
+          <View style={styles.videoPreview}>
+            <Image source={{ uri: productVideo }} style={styles.selectedImage} />
+            <View style={styles.videoOverlay}>
+              <Ionicons name="play-circle" size={32} color="rgba(255, 255, 255, 0.8)" />
+              <Text style={styles.videoText}>Video Preview</Text>
+            </View>
+          </View>
+        ) : (
+          <>
+            <Ionicons name="videocam" size={32} color="#999" />
+            <Text style={styles.imagePickerText}>Tap to add video preview (max 30s)</Text>
           </>
         )}
       </TouchableOpacity>
@@ -356,7 +438,6 @@ const VendorSetupScreen = ({ navigation, route }) => {
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
           <Ionicons name="arrow-back" size={24} color="#007AFF" />
-          <Text style={styles.backButtonText}>My Store</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add Product</Text>
         <View style={styles.headerSpacer} />
@@ -408,21 +489,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
     borderBottomWidth: 1,
     borderBottomColor: '#e9ecef',
+    position: 'relative',
   },
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  backButtonText: {
-    color: '#007AFF',
-    fontSize: 16,
-    marginLeft: 5,
-    fontWeight: '500',
+    zIndex: 1,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#000',
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    textAlign: 'center',
+    zIndex: 0,
   },
   headerSpacer: {
     width: 80,
@@ -541,6 +623,27 @@ const styles = StyleSheet.create({
   },
   activeTabText: {
     color: 'white',
+  },
+  videoPreview: {
+    position: 'relative',
+    width: '100%',
+    height: '100%',
+  },
+  videoOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoText: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 12,
+    marginTop: 4,
+    fontWeight: '500',
   },
 });
 

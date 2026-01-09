@@ -172,10 +172,6 @@ const styles = StyleSheet.create({
     color: '#000000',
     marginBottom: 8,
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#666666',
-  },
   form: {
     flex: 1,
     paddingHorizontal: 30,
