@@ -6,13 +6,6 @@ import StorePage from '../../src/webstore/StorePage';
 // Generate static params for static export
 // Return empty array to make this a client-side route (stores are dynamic)
 export async function generateStaticParams() {
-  // #region agent log
-  if (typeof process !== 'undefined' && process.env) {
-    // Log during build time
-    console.log('[generateStaticParams] Called during static export');
-  }
-  // #endregion
-  
   // Return empty array - this makes the route client-side only
   // Since we don't know all store usernames at build time, we'll render on-demand
   return [];
