@@ -233,4 +233,22 @@ const styles = StyleSheet.create({
     width: '100%',
     minHeight: '100vh',
   },
+  landingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#fff',
+  },
+  landingTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#28a745',
+  },
+  landingSubtitle: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+  },
 });
