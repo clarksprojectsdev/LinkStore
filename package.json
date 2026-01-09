@@ -47,8 +47,5 @@
     "metro-transform-worker": "0.83.3",
     "typescript": "~5.9.2"
   },
-  "optionalDependencies": {
-    "expo-router": "~6.0.19"
-  },
   "private": true
 }
