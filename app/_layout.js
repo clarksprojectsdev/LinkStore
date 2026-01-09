@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 import { Slot } from 'expo-router';
 import React, { useState, useEffect } from 'react';
+import { Stack } from 'expo-router';
 
 // Expo Router layout
 // On mobile: renders existing App.js (React Navigation)
@@ -26,12 +27,17 @@ export default function RootLayout() {
     return <MobileApp />;
   }
 
-  // On web, use Expo Router for file-based routing
-  // On mobile, show loading while App.js is being loaded
-  if (Platform.OS !== 'web') {
-    return null; // Will be replaced by MobileApp once loaded
+  // On web, use Expo Router with Stack for proper routing
+  if (Platform.OS === 'web') {
+    return (
+      <Stack>
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="store/[storeId]" options={{ headerShown: false }} />
+      </Stack>
+    );
   }
 
-  return <Slot />;
+  // On mobile, show loading while App.js is being loaded
+  return null;
 }
 
