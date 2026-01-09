@@ -45,6 +45,7 @@ const AppContent = () => {
   const [webRoute, setWebRoute] = useState(null);
   const [StorePage, setStorePage] = useState(null);
   const [isLoadingStorePage, setIsLoadingStorePage] = useState(false);
+  const [routeChecked, setRouteChecked] = useState(false);
   
   // Use refs to avoid stale closures in event handlers
   const storePageRef = useRef(null);
@@ -88,9 +89,13 @@ const AppContent = () => {
           // Root path - show landing page
           setWebRoute({ type: 'landing' });
         } else {
+          // Unknown route - set to null (will show 404 after routeChecked)
           setWebRoute(null);
           setStorePage(null); // Unload when not on store route
         }
+        
+        // Mark route check as complete
+        setRouteChecked(true);
       };
 
       // Check route immediately
@@ -125,8 +130,21 @@ const AppContent = () => {
     }
   }, []); // Empty deps - only run on mount, checkRoute uses refs for current values
 
-  // Render web pages if on web
+  // Render web pages if on web - early return to prevent fallthrough
   if (Platform.OS === 'web') {
+    // Show loading state while route is being checked
+    if (!routeChecked) {
+      return (
+        <View style={styles.webContainer}>
+          <StatusBar style="auto" />
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#28a745" />
+            <Text style={styles.loadingText}>Loading...</Text>
+          </View>
+        </View>
+      );
+    }
+    
     // Landing page for root path
     if (webRoute?.type === 'landing') {
       return (
@@ -163,9 +181,20 @@ const AppContent = () => {
         );
       }
     }
+    
+    // 404 - Unknown route (routeChecked is true but webRoute is null)
+    return (
+      <View style={styles.webContainer}>
+        <StatusBar style="auto" />
+        <View style={styles.landingContainer}>
+          <Text style={styles.landingTitle}>404</Text>
+          <Text style={styles.landingSubtitle}>Page not found</Text>
+        </View>
+      </View>
+    );
   }
 
-  // Mobile navigation (existing)
+  // Mobile navigation (existing) - web never reaches here
   if (loading) {
     return <LoadingScreen />;
   }
