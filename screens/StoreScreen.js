@@ -17,7 +17,7 @@ import { useAuth } from '../context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { RefreshControl } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import { getStoreByUserId, getProductsByStoreId } from '../utils/firestoreHelpers';
+import { getStoreByUserId } from '../utils/firestoreHelpers';
 
 const StoreScreen = ({ navigation }) => {
   const { storeData, products, saveStoreData, isLoading, deleteProduct } = useStore();
@@ -39,41 +39,6 @@ const StoreScreen = ({ navigation }) => {
     };
     setVendorFlag();
   }, []);
-
-  // Debug: Verify Firestore sync on mount
-  useEffect(() => {
-    const verifyFirestoreSync = async () => {
-      try {
-        // 1. Log current authenticated user
-        console.log('=== FIRESTORE SYNC VERIFICATION ===');
-        console.log('AUTH UID:', user?.uid);
-        
-        if (!user?.uid) {
-          console.log('No authenticated user found');
-          return;
-        }
-
-        // 2. Fetch and log store document
-        const storeDoc = await getStoreByUserId(user.uid);
-        console.log('STORE DOC EXISTS:', storeDoc !== null);
-        if (storeDoc) {
-          console.log('STORE DOC DATA:', storeDoc);
-        } else {
-          console.log('STORE DOC: null (document does not exist)');
-        }
-
-        // 3. Fetch and log all products
-        const firestoreProducts = await getProductsByStoreId(user.uid);
-        console.log('PRODUCTS COUNT:', firestoreProducts?.length || 0);
-        console.log('PRODUCTS DATA:', firestoreProducts);
-        console.log('=== END VERIFICATION ===');
-      } catch (error) {
-        console.error('Firestore sync verification error:', error);
-      }
-    };
-
-    verifyFirestoreSync();
-  }, [user?.uid]); // Run once when component mounts and user.uid is available
 
   const handleWhatsAppOrder = (product) => {
     if (!storeData.whatsappNumber) {
@@ -161,7 +126,7 @@ const StoreScreen = ({ navigation }) => {
         const updatedStore = await getStoreByUserId(user.uid);
         if (updatedStore?.username) {
           // Username was generated, proceed with copying link
-          const storeLink = `https://linkstore.app/store/${updatedStore.username}`;
+          const storeLink = `https://linkstore.expo.app/store/${updatedStore.username}`;
           Clipboard.setString(storeLink);
           Alert.alert(
             'Success!',
@@ -213,7 +178,7 @@ const StoreScreen = ({ navigation }) => {
       return;
     }
     
-    const storeLink = `https://linkstore.app/store/${username}`;
+    const storeLink = `https://linkstore.expo.app/store/${username}`;
     
     Alert.alert(
       'Share Your Store',

@@ -14,7 +14,6 @@ import LoginScreen from './screens/LoginScreen';
 import SignUpScreen from './screens/SignUpScreen';
 import StoreWebView from './screens/StoreWebView';
 import SellerDashboardScreen from './screens/SellerDashboardScreen';
-import FirestoreTestScreen from './screens/FirestoreTestScreen';
 
 // Screen names constants
 const SCREEN_NAMES = {
@@ -24,7 +23,6 @@ const SCREEN_NAMES = {
   VENDOR_SETUP: 'VendorSetup',
   STORE_WEB_VIEW: 'StoreWebView',
   SELLER_DASHBOARD: 'SellerDashboard',
-  FIRESTORE_TEST: 'FirestoreTest',
   LOGIN: 'Login',
   SIGN_UP: 'SignUp',
 };
@@ -217,7 +215,6 @@ const AppContent = () => {
             <Stack.Screen name={SCREEN_NAMES.VENDOR_SETUP} component={VendorSetupScreen} />
             <Stack.Screen name={SCREEN_NAMES.STORE_WEB_VIEW} component={StoreWebView} />
             <Stack.Screen name={SCREEN_NAMES.SELLER_DASHBOARD} component={SellerDashboardScreen} />
-            <Stack.Screen name={SCREEN_NAMES.FIRESTORE_TEST} component={FirestoreTestScreen} />
           </>
         ) : (
           // Authentication routes

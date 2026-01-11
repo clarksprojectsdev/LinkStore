@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 // React Native Web supports rendering HTML head elements directly
 
 // Default fallback image for SEO
-const DEFAULT_IMAGE = 'https://linkstore.app/assets/og-default.png';
+const DEFAULT_IMAGE = 'https://linkstore.expo.app/assets/og-default.png';
 
 interface StoreSEOProps {
   title: string;
@@ -39,10 +39,10 @@ const StoreSEO: React.FC<StoreSEOProps> = ({ title, description, image, url }) =
   const imageUrl = image || DEFAULT_IMAGE;
   const absoluteImageUrl = imageUrl.startsWith('http') 
     ? imageUrl 
-    : `https://linkstore.app${imageUrl.startsWith('/') ? imageUrl : '/' + imageUrl}`;
+    : `https://linkstore.expo.app${imageUrl.startsWith('/') ? imageUrl : '/' + imageUrl}`;
 
   // Ensure URL is absolute
-  const absoluteUrl = url.startsWith('http') ? url : `https://linkstore.app${url.startsWith('/') ? url : '/' + url}`;
+  const absoluteUrl = url.startsWith('http') ? url : `https://linkstore.expo.app${url.startsWith('/') ? url : '/' + url}`;
 
   // React Native Web supports rendering head elements when wrapped in a fragment
   // We'll use useEffect to inject into document.head for better compatibility
